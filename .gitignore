@@ -27,5 +27,16 @@ replay_pid*
 .idea/
 *.iml
 
+# Maven
+target/
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+
+# Environment
+.env
+
 # Backlog file
 docs/BACKLOG.md
