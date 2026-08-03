@@ -40,3 +40,14 @@ dist/
 
 # Backlog file
 docs/BACKLOG.md
+
+# Angular build artifacts
+/tmp
+/out-tsc
+
+# Test coverage
+/coverage
+
+# OS files
+.DS_Store
+Thumbs.db
