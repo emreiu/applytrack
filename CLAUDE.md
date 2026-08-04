@@ -17,8 +17,9 @@ as authoritative if the two ever disagree, and update this file when it drifts.
 ## Planned stack (from E1 — not yet implemented)
 
 Per `E1-S01` in the backlog, the foundation epic specifies:
-- Backend: Maven, Java 21, Spring Boot 3.5, package structure cut by **business domain**, not by
-  technical layer (e.g. not `controller`/`service`/`repository` packages).
+- Backend: Maven, Java 21, Spring Boot 4.1 (originally planned as 3.5, but that line was already
+  EOL by the time E1-S01 was implemented in 08/2026), package structure cut by **business
+  domain**, not by technical layer (e.g. not `controller`/`service`/`repository` packages).
 - Frontend: Angular + TypeScript.
 - `docker-compose.yml` for local PostgreSQL; `/actuator/health` health endpoint.
 - Flyway migrations under `db/migration`, named `V<nr>__<description>.sql`; migrations are never

@@ -27,5 +27,27 @@ replay_pid*
 .idea/
 *.iml
 
+# Maven
+target/
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+
+# Environment
+.env
+
 # Backlog file
 docs/BACKLOG.md
+
+# Angular build artifacts
+/tmp
+/out-tsc
+
+# Test coverage
+/coverage
+
+# OS files
+.DS_Store
+Thumbs.db
