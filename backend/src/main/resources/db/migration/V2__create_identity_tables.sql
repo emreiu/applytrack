@@ -12,7 +12,7 @@ CREATE TABLE app_user
     last_login_at           TIMESTAMPTZ,
     deletion_requested_at   TIMESTAMPTZ,
     ghosting_threshold_days INTEGER      NOT NULL DEFAULT 30,
-    notifications_enable    BOOLEAN      NOT NULL DEFAULT TRUE,
+    notifications_enabled    BOOLEAN      NOT NULL DEFAULT TRUE,
     created_at              TIMESTAMPTZ  NOT NULL,
     created_by              VARCHAR(255) NOT NULL,
     updated_at              TIMESTAMPTZ  NOT NULL,
@@ -24,8 +24,12 @@ CREATE TABLE app_user
 CREATE TABLE role
 (
     id          UUID PRIMARY KEY,
-    name        VARCHAR(50) NOT NULL,
+    name        VARCHAR(50)  NOT NULL,
     description VARCHAR(255),
+    created_at  TIMESTAMPTZ  NOT NULL,
+    created_by  VARCHAR(255) NOT NULL,
+    updated_at  TIMESTAMPTZ  NOT NULL,
+    updated_by  VARCHAR(255) NOT NULL,
 
     CONSTRAINT uq_role_name UNIQUE (name)
 );
@@ -38,6 +42,6 @@ CREATE TABLE user_role
     PRIMARY KEY (user_id, role_id)
 );
 
-INSERT INTO role (id, name, description)
-VALUES (gen_random_uuid(), 'ROLE_USER', 'Bewerber mit Vollzugriff auf eigene Daten'),
-       (gen_random_uuid(), 'ROLE_ADMIN', 'Plattformbetrieb ohne Zugriff auf fachliche Nutzerinhalte');
+INSERT INTO role (id, name, description, created_at, created_by, updated_at, updated_by)
+VALUES (gen_random_uuid(), 'ROLE_USER', 'Bewerber mit Vollzugriff auf eigene Daten', now(), 'SYSTEM', now(), 'SYSTEM'),
+       (gen_random_uuid(), 'ROLE_ADMIN', 'Plattformbetrieb ohne Zugriff auf fachliche Nutzerinhalte', now(), 'SYSTEM', now(), 'SYSTEM');
