@@ -4,6 +4,8 @@ import dev.applytrack.backend.common.audit.AuditableEntity;
 import jakarta.persistence.*;
 
 import java.time.OffsetDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -13,6 +15,14 @@ public class User extends AuditableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "user_role",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    private Set<Role> roles = new HashSet<>();
 
     @Column(name = "email", nullable = false, unique = true)
     private String email;
@@ -59,8 +69,24 @@ public class User extends AuditableEntity {
         this.status = UserStatus.PENDING_VERIFICATION;
     }
 
+    // ----------------------------------------------------
+    // Methods
+    // ----------------------------------------------------
+
+    public void assignRole(Role role) {
+        this.roles.add(role);
+    }
+
+    // ----------------------------------------------------
+    // Getter & Setter
+    // ----------------------------------------------------
+
     public UUID getId() {
         return id;
+    }
+
+    public Set<Role> getRoles() {
+        return Set.copyOf(roles);
     }
 
     public String getEmail() {

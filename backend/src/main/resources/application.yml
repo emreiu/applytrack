@@ -3,3 +3,6 @@ spring:
     name: backend
   jpa:
     open-in-view: false
+
+api:
+  base-path: /api/v1
