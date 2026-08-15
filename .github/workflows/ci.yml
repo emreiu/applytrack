@@ -22,7 +22,7 @@ jobs:
           cache: 'maven'
 
       - name: Run backend tests
-        run: ./mvnw test
+        run: ./mvnw verify
 
       - name: Upload coverage report
         if: always()
