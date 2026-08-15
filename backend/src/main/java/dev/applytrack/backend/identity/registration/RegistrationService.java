@@ -31,7 +31,7 @@ public class RegistrationService {
     }
 
     public void register(RegisterRequest request) {
-        String normalizedEmail = request.email().toLowerCase();
+        String normalizedEmail = request.email().trim().toLowerCase();
 
         if (userRepository.existsByEmail(normalizedEmail)) {
             notifyExistingAccount(normalizedEmail);
