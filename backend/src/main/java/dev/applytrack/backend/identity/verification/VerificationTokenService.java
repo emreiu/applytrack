@@ -18,16 +18,19 @@ public class VerificationTokenService {
     private static final int MAX_REQUESTS_PER_HOUR = 3;
 
     private final VerificationTokenRepository verificationTokenRepository;
+    private final UserRepository userRepository;
     private final VerificationTokenTransaction verificationTokenTransaction;
     private final EmailSender emailSender;
     private final String frontendBaseUrl;
 
     public VerificationTokenService(
             VerificationTokenRepository verificationTokenRepository,
+            UserRepository userRepository,
             VerificationTokenTransaction verificationTokenTransaction,
             EmailSender emailSender,
             @Value("${app.frontend-base-url}") String frontendBaseUrl) {
         this.verificationTokenRepository = verificationTokenRepository;
+        this.userRepository = userRepository;
         this.verificationTokenTransaction = verificationTokenTransaction;
         this.emailSender = emailSender;
         this.frontendBaseUrl = frontendBaseUrl;
@@ -68,6 +71,14 @@ public class VerificationTokenService {
         }
 
         verificationTokenTransaction.consume(token, token.getUser(), now);
+    }
+
+    public void resendVerificationToken(String email) {
+        String normalizedEmail = email.trim().toLowerCase();
+
+        userRepository.findByEmail(normalizedEmail)
+                .filter(user -> user.getStatus() == UserStatus.PENDING_VERIFICATION)
+                .ifPresent(this::issueToken);
     }
 
     // ----------------------------------------------------
