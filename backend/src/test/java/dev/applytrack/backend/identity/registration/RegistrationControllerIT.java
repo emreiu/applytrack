@@ -1,8 +1,6 @@
 package dev.applytrack.backend.identity.registration;
 
-import dev.applytrack.backend.identity.PasswordHasher;
-import dev.applytrack.backend.identity.User;
-import dev.applytrack.backend.identity.UserRepository;
+import dev.applytrack.backend.identity.*;
 import dev.applytrack.backend.testsupport.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,9 +23,10 @@ class RegistrationControllerIT extends AbstractIntegrationTest {
     private UserRepository userRepository;
 
     @Autowired
-    private JsonMapper jsonMapper;
+    private VerificationTokenRepository verificationTokenRepository;
+
     @Autowired
-    private PasswordHasher passwordHasher;
+    private JsonMapper jsonMapper;
 
     @Test
     void registersNewUserSuccessfully() throws Exception {
@@ -46,6 +45,10 @@ class RegistrationControllerIT extends AbstractIntegrationTest {
         assertThat(savedUser.get().getRoles())
                 .extracting("name")
                 .contains("ROLE_USER");
+
+        assertThat(verificationTokenRepository.findByUserAndTypeAndConsumedAtIsNull(
+                savedUser.get(), VerificationTokenType.EMAIL_VERIFICATION))
+                .hasSize(1);
     }
 
     @Test
@@ -66,6 +69,10 @@ class RegistrationControllerIT extends AbstractIntegrationTest {
                 .get()
                 .extracting(User::getDisplayName)
                 .isEqualTo("Max");
+
+        assertThat(verificationTokenRepository.findByUserAndTypeAndConsumedAtIsNull(
+                existingUser, VerificationTokenType.EMAIL_VERIFICATION))
+                .isEmpty();
     }
 
     @Test

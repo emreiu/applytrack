@@ -2,7 +2,9 @@ package dev.applytrack.backend.identity.registration;
 
 import dev.applytrack.backend.identity.EmailSender;
 import dev.applytrack.backend.identity.PasswordHasher;
+import dev.applytrack.backend.identity.User;
 import dev.applytrack.backend.identity.UserRepository;
+import dev.applytrack.backend.identity.verification.VerificationTokenService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -33,6 +35,9 @@ class RegistrationServiceTest {
     @Mock
     private EmailSender emailSender;
 
+    @Mock
+    private VerificationTokenService verificationTokenService;
+
     @InjectMocks
     private RegistrationService registrationService;
 
@@ -40,10 +45,14 @@ class RegistrationServiceTest {
     void registersNewUserWithHashedPasswordAndAssignsUserRole() {
         RegisterRequest request = new RegisterRequest(
                 "test@example.com", "SicheresPasswort123", "Max Mustermann");
+        User createdUser = mock(User.class);
 
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
         when(compromisedPasswordChecker.isCompromised(anyString())).thenReturn(false);
         when(passwordHasher.hash(anyString())).thenReturn("hashed-password");
+        when(userCreationTransaction.execute(
+                "test@example.com", "hashed-password", "Max Mustermann"))
+                .thenReturn(createdUser);
 
         registrationService.register(request);
 
@@ -52,13 +61,33 @@ class RegistrationServiceTest {
     }
 
     @Test
-    void normalizesEmailBeforePassingToUserCreation() {
+    void issuesVerificationTokenAfterSuccessfulRegistration() {
         RegisterRequest request = new RegisterRequest(
-                "  teSt@exAmpLe.COM ", "SicheresPasswort123", "Max");
+                "test@example.com", "SicheresPasswort123", "Max Mustermann");
+        User createdUser = mock(User.class);
 
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
         when(compromisedPasswordChecker.isCompromised(anyString())).thenReturn(false);
         when(passwordHasher.hash(anyString())).thenReturn("hashed-password");
+        when(userCreationTransaction.execute(anyString(), anyString(), anyString())).thenReturn(
+                createdUser);
+
+        registrationService.register(request);
+
+        verify(verificationTokenService).issueToken(createdUser);
+    }
+
+    @Test
+    void normalizesEmailBeforePassingToUserCreation() {
+        RegisterRequest request = new RegisterRequest(
+                "  teSt@exAmpLe.COM ", "SicheresPasswort123", "Max");
+        User createdUser = mock(User.class);
+
+        when(userRepository.existsByEmail(anyString())).thenReturn(false);
+        when(compromisedPasswordChecker.isCompromised(anyString())).thenReturn(false);
+        when(passwordHasher.hash(anyString())).thenReturn("hashed-password");
+        when(userCreationTransaction.execute(anyString(), anyString(), anyString()))
+                .thenReturn(createdUser);
 
         registrationService.register(request);
 
@@ -76,6 +105,7 @@ class RegistrationServiceTest {
 
         verify(userCreationTransaction, never()).execute(any(), any(), any());
         verify(emailSender).send(eq("test@example.com"), anyString(), anyString());
+        verify(verificationTokenService, never()).issueToken(any());
     }
 
     @Test
@@ -105,6 +135,7 @@ class RegistrationServiceTest {
         registrationService.register(request);
 
         verify(emailSender).send(eq("test@example.com"), anyString(), anyString());
+        verify(verificationTokenService, never()).issueToken(any());
     }
 
     @Test
@@ -115,6 +146,23 @@ class RegistrationServiceTest {
         when(userRepository.existsByEmail(anyString())).thenReturn(true);
         doThrow(new RuntimeException("SMTP down")).when(emailSender)
                                                   .send(anyString(), anyString(), anyString());
+
+        assertDoesNotThrow(() -> registrationService.register(request));
+    }
+
+    @Test
+    void doesNotFailRegistrationWhenVerificationTokenIssuanceFails() {
+        RegisterRequest request = new RegisterRequest(
+                "test@example.com", "SicheresPasswort123", "Max");
+        User createdUser = mock(User.class);
+
+        when(userRepository.existsByEmail(anyString())).thenReturn(false);
+        when(compromisedPasswordChecker.isCompromised(anyString())).thenReturn(false);
+        when(passwordHasher.hash(anyString())).thenReturn("hashed-password");
+        when(userCreationTransaction.execute(anyString(), anyString(), anyString()))
+                .thenReturn(createdUser);
+        doThrow(new RuntimeException("SMTP down"))
+                .when(verificationTokenService).issueToken(any());
 
         assertDoesNotThrow(() -> registrationService.register(request));
     }
