@@ -21,13 +21,13 @@ class UserCreationTransaction {
     }
 
     @Transactional
-    void execute(String normalizedEmail, String passwordHash, String displayName) {
+    User execute(String normalizedEmail, String passwordHash, String displayName) {
         User user = new User(normalizedEmail, passwordHash, displayName);
 
         Role userRole = roleRepository.findByName(ROLE_USER)
                 .orElseThrow(() -> new IllegalStateException("Role " + ROLE_USER + " not found"));
         user.assignRole(userRole);
 
-        userRepository.saveAndFlush(user);
+        return userRepository.saveAndFlush(user);
     }
 }

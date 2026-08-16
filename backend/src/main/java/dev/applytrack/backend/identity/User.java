@@ -17,11 +17,7 @@ public class User extends AuditableEntity {
     private UUID id;
 
     @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "user_role",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
+    @JoinTable(name = "user_role", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles = new HashSet<>();
 
     @Column(name = "email", nullable = false, unique = true)
@@ -75,6 +71,11 @@ public class User extends AuditableEntity {
 
     public void assignRole(Role role) {
         this.roles.add(role);
+    }
+
+    public void verifyEmail(OffsetDateTime now) {
+        this.emailVerifiedAt = now;
+        this.status = UserStatus.ACTIVE;
     }
 
     // ----------------------------------------------------

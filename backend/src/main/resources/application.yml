@@ -6,3 +6,6 @@ spring:
 
 api:
   base-path: /api/v1
+
+app:
+  frontend-base-url: http://localhost:4200

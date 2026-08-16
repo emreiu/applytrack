@@ -1,6 +1,7 @@
 package dev.applytrack.backend.identity.registration;
 
 import dev.applytrack.backend.identity.*;
+import dev.applytrack.backend.identity.verification.VerificationTokenService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -17,17 +18,20 @@ public class RegistrationService {
     private final PasswordHasher passwordHasher;
     private final CompromisedPasswordChecker compromisedPasswordChecker;
     private final EmailSender emailSender;
+    private final VerificationTokenService verificationTokenService;
 
     RegistrationService(UserRepository userRepository,
                         UserCreationTransaction userCreationTransaction,
                         PasswordHasher passwordHasher,
                         CompromisedPasswordChecker compromisedPasswordChecker,
-                        EmailSender emailSender) {
+                        EmailSender emailSender,
+                        VerificationTokenService verificationTokenService) {
         this.userRepository = userRepository;
         this.userCreationTransaction = userCreationTransaction;
         this.passwordHasher = passwordHasher;
         this.compromisedPasswordChecker = compromisedPasswordChecker;
         this.emailSender = emailSender;
+        this.verificationTokenService = verificationTokenService;
     }
 
     public void register(RegisterRequest request) {
@@ -44,17 +48,31 @@ public class RegistrationService {
 
         String passwordHash = passwordHasher.hash(request.password());
 
+        User user;
         try {
-            userCreationTransaction.execute(normalizedEmail, passwordHash, request.displayName());
+            user = userCreationTransaction.execute(normalizedEmail, passwordHash, request.displayName());
         } catch (DataIntegrityViolationException e) {
             log.info("Registration race condition for email, treating as duplicate");
             notifyExistingAccount(normalizedEmail);
+            return;
         }
+
+        issueVerificationToken(user);
     }
 
     // ----------------------------------------------------
     // Helper Methods
     // ----------------------------------------------------
+
+    private void issueVerificationToken(User user) {
+        try {
+            verificationTokenService.issueToken(user);
+        } catch (Exception e) {
+            // best effort: User is already created and saved. An error shouldn't cancel the registration.
+            // User can request the token via resend-endpoint
+            log.warn("Failed to issue verification token for user {}", user.getId(), e);
+        }
+    }
 
     private void notifyExistingAccount(String normalizedEmail) {
         try {
