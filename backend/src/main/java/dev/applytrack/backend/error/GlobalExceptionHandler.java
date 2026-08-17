@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
 
@@ -20,6 +21,12 @@ import java.util.List;
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    private final Clock clock;
+
+    public GlobalExceptionHandler(Clock clock) {
+        this.clock = clock;
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ProblemDetail handleValidation(MethodArgumentNotValidException ex) {
@@ -87,7 +94,7 @@ public class GlobalExceptionHandler {
 
     private void enrich(ProblemDetail problemDetail, ErrorCode errorCode) {
         problemDetail.setProperty("errorCode", errorCode);
-        problemDetail.setProperty("timestamp", OffsetDateTime.now());
+        problemDetail.setProperty("timestamp", OffsetDateTime.now(clock));
         problemDetail.setProperty("correlationId", MDC.get(CorrelationIdFilter.MDC_KEY));
     }
 
