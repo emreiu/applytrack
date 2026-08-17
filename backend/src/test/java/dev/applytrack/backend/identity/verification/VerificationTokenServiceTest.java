@@ -13,6 +13,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -44,12 +47,14 @@ class VerificationTokenServiceTest {
 
     @BeforeEach
     void setUp() {
+        Clock fixedClock = Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC);
         verificationTokenService = new VerificationTokenService(
                 verificationTokenRepository,
                 userRepository,
                 verificationTokenTransaction,
                 emailSender,
-                "http://localhost:4200");
+                "http://localhost:4200",
+                fixedClock);
     }
 
     @Test

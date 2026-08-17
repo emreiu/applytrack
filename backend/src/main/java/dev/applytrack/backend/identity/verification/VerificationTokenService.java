@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Base64;
 import java.util.HexFormat;
@@ -22,22 +23,25 @@ public class VerificationTokenService {
     private final VerificationTokenTransaction verificationTokenTransaction;
     private final EmailSender emailSender;
     private final String frontendBaseUrl;
+    private final Clock clock;
 
     public VerificationTokenService(
             VerificationTokenRepository verificationTokenRepository,
             UserRepository userRepository,
             VerificationTokenTransaction verificationTokenTransaction,
             EmailSender emailSender,
-            @Value("${app.frontend-base-url}") String frontendBaseUrl) {
+            @Value("${app.frontend-base-url}") String frontendBaseUrl,
+            Clock clock) {
         this.verificationTokenRepository = verificationTokenRepository;
         this.userRepository = userRepository;
         this.verificationTokenTransaction = verificationTokenTransaction;
         this.emailSender = emailSender;
         this.frontendBaseUrl = frontendBaseUrl;
+        this.clock = clock;
     }
 
     public void issueToken(User user) {
-        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime now = OffsetDateTime.now(clock);
 
         long recentRequests = verificationTokenRepository.countByUserAndTypeAndCreatedAtAfter(
                 user, VerificationTokenType.EMAIL_VERIFICATION, now.minusHours(1));
@@ -65,7 +69,7 @@ public class VerificationTokenService {
             throw new InvalidVerificationTokenException();
         }
 
-        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime now = OffsetDateTime.now(clock);
         if (token.isExpired(now)) {
             throw new VerificationTokenExpiredException();
         }
@@ -77,8 +81,8 @@ public class VerificationTokenService {
         String normalizedEmail = email.trim().toLowerCase();
 
         userRepository.findByEmail(normalizedEmail)
-                .filter(user -> user.getStatus() == UserStatus.PENDING_VERIFICATION)
-                .ifPresent(this::issueToken);
+                      .filter(user -> user.getStatus() == UserStatus.PENDING_VERIFICATION)
+                      .ifPresent(this::issueToken);
     }
 
     // ----------------------------------------------------

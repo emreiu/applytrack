@@ -7,6 +7,7 @@ import org.springframework.data.auditing.DateTimeProvider;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
+import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 
@@ -21,7 +22,7 @@ public class JpaAuditingConfig {
     }
 
     @Bean
-    public DateTimeProvider auditingDateTimeProvider() {
-        return () -> Optional.of(OffsetDateTime.now());
+    public DateTimeProvider auditingDateTimeProvider(Clock clock) {
+        return () -> Optional.of(OffsetDateTime.now(clock));
     }
 }
