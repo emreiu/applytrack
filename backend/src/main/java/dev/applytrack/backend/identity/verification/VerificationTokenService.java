@@ -1,17 +1,14 @@
 package dev.applytrack.backend.identity.verification;
 
+import dev.applytrack.backend.common.crypto.Sha256Hasher;
 import dev.applytrack.backend.identity.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Base64;
-import java.util.HexFormat;
 
 @Service
 public class VerificationTokenService {
@@ -50,7 +47,7 @@ public class VerificationTokenService {
         }
 
         String rawToken = generateRawToken();
-        String tokenHash = hash(rawToken);
+        String tokenHash = Sha256Hasher.hash(rawToken);
         OffsetDateTime expiresAt = now.plusHours(24);
 
         verificationTokenTransaction.issue(user, tokenHash, now, expiresAt);
@@ -59,7 +56,7 @@ public class VerificationTokenService {
     }
 
     public void verifyToken(String rawToken) {
-        String tokenHash = hash(rawToken);
+        String tokenHash = Sha256Hasher.hash(rawToken);
 
         VerificationToken token = verificationTokenRepository
                 .findByTokenHashAndType(tokenHash, VerificationTokenType.EMAIL_VERIFICATION)
@@ -93,16 +90,6 @@ public class VerificationTokenService {
         byte[] randomBytes = new byte[32];
         new SecureRandom().nextBytes(randomBytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
-    }
-
-    private String hash(String rawToken) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashBytes = digest.digest(rawToken.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(hashBytes);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 not available", e);
-        }
     }
 
     private void sendVerificationEmail(User user, String rawToken) {
