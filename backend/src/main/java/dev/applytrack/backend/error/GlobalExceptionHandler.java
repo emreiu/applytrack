@@ -1,5 +1,8 @@
 package dev.applytrack.backend.error;
 
+import dev.applytrack.backend.identity.authentication.AccountTemporarilyLockedException;
+import dev.applytrack.backend.identity.authentication.EmailNotVerifiedException;
+import dev.applytrack.backend.identity.authentication.InvalidCredentialsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -35,8 +38,9 @@ public class GlobalExceptionHandler {
         enrich(problemDetail, ErrorCode.VALIDATION_FAILED);
 
         List<FieldErrorDetail> fieldErrors = ex.getBindingResult().getFieldErrors().stream()
-                .map(fe -> new FieldErrorDetail(fe.getField(), fe.getDefaultMessage()))
-                .toList();
+                                               .map(fe -> new FieldErrorDetail(
+                                                       fe.getField(), fe.getDefaultMessage()))
+                                               .toList();
         problemDetail.setProperty("fieldErrors", fieldErrors);
 
         return problemDetail;
@@ -52,7 +56,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ProblemDetail handleResourceNotFound(ResourceNotFoundException ex) {
-        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.NOT_FOUND, ex.getMessage());
         enrich(problemDetail, ErrorCode.RESOURCE_NOT_FOUND);
         return problemDetail;
     }
@@ -76,7 +81,32 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessRuleViolationException.class)
     public ProblemDetail handleBusinessRuleViolation(BusinessRuleViolationException ex) {
-        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST, ex.getMessage());
+        enrich(problemDetail, ex.getErrorCode());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ProblemDetail handleInvalidCredentials(InvalidCredentialsException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.UNAUTHORIZED, ex.getMessage());
+        enrich(problemDetail, ex.getErrorCode());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(AccountTemporarilyLockedException.class)
+    public ProblemDetail handleAccountTemporarilyLocked(AccountTemporarilyLockedException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
+        enrich(problemDetail, ex.getErrorCode());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(EmailNotVerifiedException.class)
+    public ProblemDetail handleEmailNotVerified(EmailNotVerifiedException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.FORBIDDEN, ex.getMessage());
         enrich(problemDetail, ex.getErrorCode());
         return problemDetail;
     }
