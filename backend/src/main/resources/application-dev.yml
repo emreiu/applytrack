@@ -14,3 +14,7 @@ spring:
 logging:
   pattern:
     console: "%d{HH:mm:ss.SSS} [%X{correlationId}] %-5level %logger{36} - %msg%n"
+
+app:
+  jwt:
+    secret: ${APP_JWT_SECRET:dev-only-insecure-secret-please-change-1234567890}

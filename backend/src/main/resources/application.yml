@@ -9,3 +9,6 @@ api:
 
 app:
   frontend-base-url: http://localhost:4200
+  jwt:
+    access-token-ttl: 15m
+    refresh-token-ttl: 30d
