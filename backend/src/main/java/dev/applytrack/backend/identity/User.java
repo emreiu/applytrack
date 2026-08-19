@@ -78,6 +78,10 @@ public class User extends AuditableEntity {
         this.status = UserStatus.ACTIVE;
     }
 
+    public void recordLogin(OffsetDateTime now) {
+        this.lastLoginAt = now;
+    }
+
     // ----------------------------------------------------
     // Getter & Setter
     // ----------------------------------------------------
