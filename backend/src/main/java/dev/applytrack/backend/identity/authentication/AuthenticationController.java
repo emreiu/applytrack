@@ -7,10 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("${api.base-path}/auth")
@@ -30,10 +27,10 @@ public class AuthenticationController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(
+    public ResponseEntity<AuthenticationResponse> login(
             @Valid @RequestBody LoginRequest request,
             HttpServletRequest httpRequest) {
-        LoginResult result = authenticationService.login(
+        AuthenticationResult result = authenticationService.login(
                 request.email(),
                 request.password(),
                 httpRequest.getRemoteAddr(),
@@ -46,7 +43,7 @@ public class AuthenticationController {
                              .body(result.response());
     }
 
-    private ResponseCookie buildRefreshTokenCookie(LoginResult result) {
+    private ResponseCookie buildRefreshTokenCookie(AuthenticationResult result) {
         return ResponseCookie.from(cookieProperties.name(), result.rawRefreshToken())
                              .httpOnly(true)
                              .secure(cookieProperties.secure())
@@ -54,5 +51,19 @@ public class AuthenticationController {
                              .path(cookiePath)
                              .maxAge(result.refreshTokenMaxAge())
                              .build();
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthenticationResponse> refresh(
+            @CookieValue(name = "${app.auth.cookie.name}", required = false) String refreshToken,
+            HttpServletRequest httpRequest) {
+        AuthenticationResult result = authenticationService.refresh(
+                refreshToken, httpRequest.getRemoteAddr(), httpRequest.getHeader("User-Agent"));
+
+        ResponseCookie cookie = buildRefreshTokenCookie(result);
+
+        return ResponseEntity.ok()
+                             .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                             .body(result.response());
     }
 }

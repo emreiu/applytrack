@@ -3,6 +3,7 @@ package dev.applytrack.backend.error;
 import dev.applytrack.backend.identity.authentication.AccountTemporarilyLockedException;
 import dev.applytrack.backend.identity.authentication.EmailNotVerifiedException;
 import dev.applytrack.backend.identity.authentication.InvalidCredentialsException;
+import dev.applytrack.backend.identity.authentication.InvalidRefreshTokenException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -99,6 +100,14 @@ public class GlobalExceptionHandler {
     public ProblemDetail handleAccountTemporarilyLocked(AccountTemporarilyLockedException ex) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
                 HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
+        enrich(problemDetail, ex.getErrorCode());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ProblemDetail handleInvalidRefreshToken(InvalidRefreshTokenException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.UNAUTHORIZED, ex.getMessage());
         enrich(problemDetail, ex.getErrorCode());
         return problemDetail;
     }

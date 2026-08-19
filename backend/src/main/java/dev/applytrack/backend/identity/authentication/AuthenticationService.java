@@ -25,6 +25,7 @@ public class AuthenticationService {
     private final DummyPasswordHashProvider dummyPasswordHashProvider;
     private final LoginLockoutPolicy loginLockoutPolicy;
     private final AuthenticationTransaction authenticationTransaction;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final JwtEncoder jwtEncoder;
     private final JwtProperties jwtProperties;
     private final Clock clock;
@@ -35,6 +36,7 @@ public class AuthenticationService {
             DummyPasswordHashProvider dummyPasswordHashProvider,
             LoginLockoutPolicy loginLockoutPolicy,
             AuthenticationTransaction authenticationTransaction,
+            RefreshTokenRepository refreshTokenRepository,
             JwtEncoder jwtEncoder,
             JwtProperties jwtProperties,
             Clock clock) {
@@ -43,12 +45,13 @@ public class AuthenticationService {
         this.dummyPasswordHashProvider = dummyPasswordHashProvider;
         this.loginLockoutPolicy = loginLockoutPolicy;
         this.authenticationTransaction = authenticationTransaction;
+        this.refreshTokenRepository = refreshTokenRepository;
         this.jwtEncoder = jwtEncoder;
         this.jwtProperties = jwtProperties;
         this.clock = clock;
     }
 
-    public LoginResult login(
+    public AuthenticationResult login(
             String rawEmail, String rawPassword, String ipAddress, String userAgent) {
         String email = rawEmail.trim().toLowerCase();
         String ipHash = ipAddress == null ? null : Sha256Hasher.hash(ipAddress);
@@ -86,17 +89,6 @@ public class AuthenticationService {
             throw new InvalidCredentialsException();
         }
 
-        return issueSession(user, email, ipHash, userAgent, now);
-    }
-
-    // ----------------------------------------------------
-    // Helper Methods
-    // ----------------------------------------------------
-
-    private LoginResult issueSession(
-            User user, String email, String ipHash, String userAgent, OffsetDateTime now) {
-        String accessToken = createAccessToken(user, now);
-
         String rawRefreshToken = SecureTokenGenerator.generate();
         String refreshTokenHash = Sha256Hasher.hash(rawRefreshToken);
         OffsetDateTime refreshExpiresAt = now.plus(jwtProperties.refreshTokenTtl());
@@ -104,7 +96,53 @@ public class AuthenticationService {
         authenticationTransaction.completeSuccessfulLogin(
                 email, user, refreshTokenHash, now, refreshExpiresAt, userAgent, ipHash, userAgent);
 
-        LoginResponse response = new LoginResponse(
+        return buildResult(user, now, rawRefreshToken);
+    }
+
+    public AuthenticationResult refresh(
+            String rawRefreshToken, String ipAddress, String userAgent) {
+        if (rawRefreshToken == null) {
+            throw new InvalidRefreshTokenException();
+        }
+
+        String tokenHash = Sha256Hasher.hash(rawRefreshToken);
+        RefreshToken existingToken = refreshTokenRepository.findByTokenHash(tokenHash)
+                                                           .orElseThrow(
+                                                                   InvalidRefreshTokenException::new);
+
+        OffsetDateTime now = OffsetDateTime.now(clock);
+
+        if (existingToken.isRevoked()) {
+            authenticationTransaction.revokeAllActiveTokens(existingToken.getUser(), now);
+            throw new InvalidRefreshTokenException();
+        }
+
+        if (existingToken.isExpired(now)) {
+            throw new InvalidRefreshTokenException();
+        }
+
+        User user = existingToken.getUser();
+        String ipHash = ipAddress == null ? null : Sha256Hasher.hash(ipAddress);
+
+        String newRawRefreshToken = SecureTokenGenerator.generate();
+        String newTokenHash = Sha256Hasher.hash(newRawRefreshToken);
+        OffsetDateTime newExpiresAt = now.plus(jwtProperties.refreshTokenTtl());
+
+        authenticationTransaction.rotateRefreshToken(
+                existingToken, user, newTokenHash, now, newExpiresAt, userAgent, ipHash);
+
+        return buildResult(user, now, newRawRefreshToken);
+    }
+
+    // ----------------------------------------------------
+    // Helper Methods
+    // ----------------------------------------------------
+
+    private AuthenticationResult buildResult(
+            User user, OffsetDateTime now, String rawRefreshToken) {
+        String accessToken = createAccessToken(user, now);
+
+        AuthenticationResponse response = new AuthenticationResponse(
                 accessToken,
                 jwtProperties.accessTokenTtl().toSeconds(),
                 user.getId(),
@@ -112,7 +150,7 @@ public class AuthenticationService {
                 user.getRoles().stream().map(Role::getName).collect(Collectors.toSet())
         );
 
-        return new LoginResult(response, rawRefreshToken, jwtProperties.refreshTokenTtl());
+        return new AuthenticationResult(response, rawRefreshToken, jwtProperties.refreshTokenTtl());
     }
 
     private String createAccessToken(User user, OffsetDateTime now) {
