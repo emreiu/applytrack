@@ -1,14 +1,13 @@
 package dev.applytrack.backend.identity.verification;
 
+import dev.applytrack.backend.common.crypto.SecureTokenGenerator;
 import dev.applytrack.backend.common.crypto.Sha256Hasher;
 import dev.applytrack.backend.identity.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.OffsetDateTime;
-import java.util.Base64;
 
 @Service
 public class VerificationTokenService {
@@ -46,7 +45,7 @@ public class VerificationTokenService {
             throw new TooManyVerificationRequestsException();
         }
 
-        String rawToken = generateRawToken();
+        String rawToken = SecureTokenGenerator.generate();
         String tokenHash = Sha256Hasher.hash(rawToken);
         OffsetDateTime expiresAt = now.plusHours(24);
 
@@ -85,12 +84,6 @@ public class VerificationTokenService {
     // ----------------------------------------------------
     // Helper Methods
     // ----------------------------------------------------
-
-    private String generateRawToken() {
-        byte[] randomBytes = new byte[32];
-        new SecureRandom().nextBytes(randomBytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
-    }
 
     private void sendVerificationEmail(User user, String rawToken) {
         String link = frontendBaseUrl + "/verify-email?token=" + rawToken;
