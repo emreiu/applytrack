@@ -12,6 +12,6 @@ import java.time.Duration;
 public record JwtProperties(
         @NotBlank String secret,
         @NotNull Duration accessTokenTtl,
-        @NotNull Duration refreshTokenTTl
+        @NotNull Duration refreshTokenTtl
 ) {
 }
