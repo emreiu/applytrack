@@ -112,7 +112,7 @@ public class AuthenticationService {
                 user.getRoles().stream().map(Role::getName).collect(Collectors.toSet())
         );
 
-        return new LoginResult(response, rawRefreshToken, refreshExpiresAt);
+        return new LoginResult(response, rawRefreshToken, jwtProperties.refreshTokenTtl());
     }
 
     private String createAccessToken(User user, OffsetDateTime now) {

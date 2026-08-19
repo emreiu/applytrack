@@ -6,3 +6,7 @@ spring:
 app:
   jwt:
     secret: test-only-insecure-secret-please-change-1234567890
+  auth:
+    cookie:
+      same-site: Lax
+      secure: false

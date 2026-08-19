@@ -18,3 +18,7 @@ logging:
 app:
   jwt:
     secret: ${APP_JWT_SECRET:dev-only-insecure-secret-please-change-1234567890}
+  auth:
+      cookie:
+        same-site: Lax
+        secure: false
